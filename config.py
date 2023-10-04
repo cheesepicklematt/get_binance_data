@@ -19,4 +19,4 @@ class getCred:
 
 cred = getCred()
 
-save_dir = os.path.join(os.path.expanduser('~'),'python_dir','6_crypto','3_back_test','data')
+save_dir = os.path.join(os.path.expanduser('~'),'python_dir','6_crypto','3_back_test','backtest_stat_arb','data')
