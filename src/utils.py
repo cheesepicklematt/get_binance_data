@@ -1,8 +1,9 @@
 import pandas as pd
+import os
 from binance.client import Client
 import datetime as dt
 
-from config import cred
+from config import cred, save_dir
 
 
 
@@ -84,11 +85,15 @@ class getData:
             for i in range(2,num_assets):
                 self.final_data = pd.merge(self.final_data, self.all_data_raw[i], on='Open time', how='left')
 
-    def return_data(self,convert_timestamp=False):
+    def return_data(self,convert_timestamp=False,save_csv=True,return_data=True):
         self.extract_data()
         self.merge_data()
 
         if convert_timestamp:
             self.final_data['Open time formatted'] = self.convert_timestamps_to_ymd_hms(self.final_data['Open time']) 
-        
-        return self.final_data
+
+        if save_csv:
+            self.final_data.to_csv(os.path.join(save_dir,'raw_data.csv'))
+
+        if return_data:
+            return self.final_data

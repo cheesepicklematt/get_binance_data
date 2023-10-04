@@ -2,13 +2,15 @@ from binance.client import Client
 
 from src.utils import getData
 
-# ["BNBBTC","ETHBTC","ADABTC","SOLBTC"]
+
 gd = getData(        
-    asset_list=["SOLBTC","ADABTC"],
-    time_str = "10 days ago UTC",
-    kline_interval = Client.KLINE_INTERVAL_1HOUR
+    asset_list=["BNBBTC","ETHBTC","ADABTC","SOLBTC"],
+    time_str = "100 days ago UTC",
+    kline_interval = Client.KLINE_INTERVAL_15MINUTE
     )
 
-data = gd.return_data(convert_timestamp=True)
+data = gd.return_data(
+    convert_timestamp=True,
+    save_csv=True,
+    return_data=False)
 
-data['Close_returns_ADABTC'].min()

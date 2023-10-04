@@ -18,3 +18,5 @@ class getCred:
         return json.loads(data)
 
 cred = getCred()
+
+save_dir = os.path.join(os.path.expanduser('~'),'python_dir','6_crypto','3_back_test','data')
