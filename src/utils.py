@@ -93,7 +93,7 @@ class getData:
             self.final_data['Open time formatted'] = self.convert_timestamps_to_ymd_hms(self.final_data['Open time']) 
 
         if save_csv:
-            self.final_data.to_csv(os.path.join(save_dir,'raw_data.csv'))
+            self.final_data.to_csv(os.path.join(save_dir,'raw_data.csv'),index=False)
 
         if return_data:
             return self.final_data

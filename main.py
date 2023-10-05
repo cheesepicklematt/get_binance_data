@@ -4,7 +4,7 @@ from src.utils import getData
 
 
 gd = getData(        
-    asset_list=["BNBBTC","ETHBTC","ADABTC","SOLBTC"],
+    asset_list=["BNBBTC","ETHBTC","SOLBTC"],
     time_str = "100 days ago UTC",
     kline_interval = Client.KLINE_INTERVAL_15MINUTE
     )
