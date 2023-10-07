@@ -2,6 +2,7 @@ import os
 import json
 from binance.client import Client
 
+
 class getCred:
     def __init__(self):
         self.pathCred = os.path.join(os.path.expanduser('~'),'0_cred')
@@ -19,4 +20,9 @@ class getCred:
 
 cred = getCred()
 
-save_dir = os.path.join(os.path.expanduser('~'),'python_dir','6_crypto','3_back_test','backtest_stat_arb','data')
+binance_dir = os.path.join('Documents','1_coding','1_trading','binance_stuff')
+if os.name == 'posix':
+    save_dir = os.path.join(os.path.expanduser('~'),binance_dir,'execute_trades','data','testing_data')
+else:
+    save_dir = os.path.join(os.path.expanduser('~'),'python_dir','6_crypto','3_back_test','backtest_stat_arb','data')
+

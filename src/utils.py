@@ -3,8 +3,22 @@ import os
 from binance.client import Client
 import datetime as dt
 
-from config import cred, save_dir
+from get_binance_data.config import cred, save_dir
 
+
+
+class OrderBookData:
+    def __init__(self):
+        self.client = cred.client
+
+    def get_current_ob(self,symbol=None):
+        order_book = self.client.get_order_book(symbol=symbol)
+        self.bids_df = pd.DataFrame(order_book['bids'],columns = ['price','qty'])
+        self.asks_df = pd.DataFrame(order_book['asks'],columns = ['price','qty'])
+
+    def save_data(self):
+        self.bids_df.to_csv(os.path.join(save_dir,'bids.csv'),index=False)
+        self.asks_df.to_csv(os.path.join(save_dir,'asks.csv'),index=False)
 
 
 class getData:
