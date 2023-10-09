@@ -6,7 +6,6 @@ import datetime as dt
 from get_binance_data.config import cred, save_dir
 
 
-
 class OrderBookData:
     def __init__(self):
         self.client = cred.client
