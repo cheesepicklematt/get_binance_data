@@ -61,25 +61,27 @@ class getData:
 
         return ymd_hms_formats
 
-    @staticmethod
-    def dfcol_2_ret(pricesDF):
-        return (pricesDF - pricesDF.shift(1))/pricesDF.shift(1)
-
     
-    def extract_data(self):
+    def extract_data(
+        self,   
+        asset_list=["BNBBTC"],
+        time_str = "1 day ago UTC",
+        kline_interval = Client.KLINE_INTERVAL_15MINUTE
+        ):
+
         """Iterate over each asset and extract the relevant data
         create returns for open, high, low, close
         """
+        self.asset_list = asset_list
+        self.time_str = time_str
+        self.kline_interval = kline_interval
+
         self.all_data_raw = []
         for asset in self.asset_list:
             data = self.client.get_historical_klines(asset, self.kline_interval, self.time_str)
             data = pd.DataFrame(data,columns=self.kline_dict.keys())
             del data['Can be ignored'],data['Close time']
             data = data.apply(pd.to_numeric)
-
-            ret_cols = ['Open','High','Low','Close']
-            for ret_col in ret_cols:
-                data[ret_col+'_returns'] = self.dfcol_2_ret(data[ret_col])
 
             data.columns = [x+'_'+asset if x.find('time')==-1 else x for x in data.columns]
 
@@ -99,7 +101,6 @@ class getData:
                 self.final_data = pd.merge(self.final_data, self.all_data_raw[i], on='Open time', how='left')
 
     def return_data(self,convert_timestamp=False,save_csv=True,return_data=True):
-        self.extract_data()
         self.merge_data()
 
         if convert_timestamp:
