@@ -23,9 +23,9 @@ class OrderBookData:
 class getData:
     def __init__(
         self,
-        asset_list=["BNBBTC"],
-        time_str = "1 day ago UTC",
-        kline_interval = Client.KLINE_INTERVAL_15MINUTE
+        asset_list=None,
+        time_str = None,
+        kline_interval = None
         ):
         """asset list is a list of assets
         time_str and kline_interval are a single value
@@ -49,7 +49,17 @@ class getData:
               'Taker buy quote asset volume':10,
               'Can be ignored':11}
     
-    def run(self):
+    def run(
+        self,        
+        asset_list=None,
+        time_str = None,
+        kline_interval = None
+        ):
+
+        self.asset_list = asset_list
+        self.time_str = time_str
+        self.kline_interval = kline_interval
+
         self.extract_data()
         return self.return_data()
 
@@ -67,18 +77,12 @@ class getData:
 
     
     def extract_data(
-        self,   
-        asset_list=["BNBBTC"],
-        time_str = "1 day ago UTC",
-        kline_interval = Client.KLINE_INTERVAL_15MINUTE
+        self
         ):
 
         """Iterate over each asset and extract the relevant data
         create returns for open, high, low, close
         """
-        self.asset_list = asset_list
-        self.time_str = time_str
-        self.kline_interval = kline_interval
 
         self.all_data_raw = []
         for asset in self.asset_list:
@@ -115,3 +119,47 @@ class getData:
 
         if return_data:
             return self.final_data
+
+
+
+class xHourVolume:
+    def __init__(self,hours = None, top_pct = None, save_path = None):
+        self.client = cred.client
+
+        self.hours = hours
+        self.top_pct = top_pct
+        self.save_path = save_path
+
+        info = self.client.get_exchange_info()
+        self.symbol_list = [x['symbol'] for x in info['symbols'] if x['symbol'][-3:]=='BTC']
+
+    def run(self):
+        gd = getData()
+        data = gd.run(
+            asset_list=self.symbol_list,
+            time_str = str(self.hours)+" hours ago UTC",
+            kline_interval = Client.KLINE_INTERVAL_1MINUTE
+        )
+
+        vol_list = []
+        for symbol in self.symbol_list:
+            coin_col = 'Taker buy base asset volume_'+symbol
+            btc_col = 'Taker buy quote asset volume_'+symbol
+            coin_volume = data[coin_col].sum()
+            btc_volume = data[btc_col].sum()
+            vol_list.append([symbol,coin_volume,btc_volume])
+
+
+        excl_list = [
+            'WBTCBTC','XMRBTC'
+        ]
+
+        vol_df = pd.DataFrame(vol_list,columns=['symbol','coin_volume','btc_volume'])
+        symbol_df = vol_df.sort_values(by='btc_volume',ascending=False).head(int(len(vol_df)*self.top_pct))
+        symbol_df = symbol_df[~symbol_df['symbol'].isin(excl_list)].reset_index(drop=True)
+        
+        if self.save_path is not None:
+            symbol_df.to_csv(self.save_path,index=False)
+        return symbol_df
+
+
