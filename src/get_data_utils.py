@@ -48,6 +48,10 @@ class getData:
               'Taker buy base asset volume':9,
               'Taker buy quote asset volume':10,
               'Can be ignored':11}
+    
+    def run(self):
+        self.extract_data()
+        self.return_data()
 
     @staticmethod
     def convert_timestamps_to_ymd_hms(timestamps):
@@ -100,7 +104,7 @@ class getData:
             for i in range(2,num_assets):
                 self.final_data = pd.merge(self.final_data, self.all_data_raw[i], on='Open time', how='left')
 
-    def return_data(self,convert_timestamp=False,save_csv=True,return_data=True):
+    def return_data(self,convert_timestamp=True,save_csv=False,return_data=True):
         self.merge_data()
 
         if convert_timestamp:
