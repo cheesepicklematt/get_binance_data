@@ -51,7 +51,7 @@ class getData:
     
     def run(self):
         self.extract_data()
-        self.return_data()
+        return self.return_data()
 
     @staticmethod
     def convert_timestamps_to_ymd_hms(timestamps):

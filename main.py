@@ -1,22 +1,22 @@
+
 from binance.client import Client
 
-from src.utils import getData, OrderBookData
+from get_binance_data.src.get_data_utils import getData, OrderBookData
 
-'''
+
 gd = getData(        
-    asset_list=["BNBBTC","ETHBTC","SOLBTC","XRPBTC","ADABTC","TRXBTC","XMRBTC","AVAXBTC","LTCBTC"],
-    time_str = "200 days ago UTC",
-    kline_interval = Client.KLINE_INTERVAL_15MINUTE
+    asset_list=["BNBBTC"],
+    time_str = "1 days ago UTC",
+    kline_interval = Client.KLINE_INTERVAL_1MINUTE
     )
+data = gd.run()
 
-data = gd.return_data(
-    convert_timestamp=True,
-    save_csv=True,
-    return_data=False)
-'''
+coin_col = 'Taker buy base asset volume_BNBBTC'
+btc_col = 'Taker buy quote asset volume_BNBBTC'
+coin_volume = data[coin_col].sum()
+btc_volume = data[btc_col].sum()
 
-# orderbook
-ob = OrderBookData()
-ob.get_current_ob(symbol='BNBBTC')
-ob.save_data()
+
+
+
 
