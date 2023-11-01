@@ -123,11 +123,11 @@ class getData:
 
 
 class xHourVolume:
-    def __init__(self,hours = None, top_pct = None, save_path = None):
+    def __init__(self,hours = None, top_x = None, save_path = None):
         self.client = cred.client
 
         self.hours = hours
-        self.top_pct = top_pct
+        self.top_x = top_x
         self.save_path = save_path
 
         info = self.client.get_exchange_info()
@@ -138,7 +138,7 @@ class xHourVolume:
         data = gd.run(
             asset_list=self.symbol_list,
             time_str = str(self.hours)+" hours ago UTC",
-            kline_interval = Client.KLINE_INTERVAL_1MINUTE
+            kline_interval = Client.KLINE_INTERVAL_30MINUTE
         )
 
         vol_list = []
@@ -155,8 +155,9 @@ class xHourVolume:
         ]
 
         vol_df = pd.DataFrame(vol_list,columns=['symbol','coin_volume','btc_volume'])
-        symbol_df = vol_df.sort_values(by='btc_volume',ascending=False).head(int(len(vol_df)*self.top_pct))
-        symbol_df = symbol_df[~symbol_df['symbol'].isin(excl_list)].reset_index(drop=True)
+
+        symbol_df = vol_df[~vol_df['symbol'].isin(excl_list)].reset_index(drop=True)
+        symbol_df = symbol_df.sort_values(by='btc_volume',ascending=False).head(self.top_x)
         
         if self.save_path is not None:
             symbol_df.to_csv(self.save_path,index=False)
