@@ -164,3 +164,52 @@ class xHourVolume:
         return symbol_df
 
 
+class tradeData:
+    def __init__(self,symbol_list=None,time_str = None):
+        self.client = cred.client
+
+        self.time_str = time_str
+        self.symbol_list = symbol_list
+        self.dict_names = {
+            "a": "aggregate tradeId",   
+            "p": "price",  
+            "q": "quantity",
+            "f": "First tradeId",     
+            "l": "Last tradeId",        
+            "T": "Timestamp", 
+            "m": "buyer the maker",        
+            "M": "best price match" 
+        }
+
+    @staticmethod
+    def convert_timestamps_to_ymd_hms(timestamps):
+        ymd_hms_formats = []
+
+        for timestamp in timestamps:
+            timestamp_seconds = timestamp / 1000
+            datetime_obj = dt.datetime.fromtimestamp(timestamp_seconds)
+            ymd_hms_format = datetime_obj.strftime('%Y-%m-%d_%H:%M')
+            ymd_hms_formats.append(ymd_hms_format)
+
+        return ymd_hms_formats
+
+    def _clean_data(self,symbol):
+        self.trade_df['time_formatted'] = self.convert_timestamps_to_ymd_hms(self.trade_df['Timestamp_'+symbol])
+
+    def extract_raw_data(self):
+        self.data_dict = {}
+        for symbol in self.symbol_list:
+            agg_trades = self.client.aggregate_trade_iter(symbol=symbol, start_str=self.time_str)
+            agg_trade_list = list(agg_trades)
+
+            trade_data = []
+            for tmp_trade in agg_trade_list:
+                trade_data.append([tmp_trade[x] for x in self.dict_names])
+            
+            
+            self.trade_df = pd.DataFrame(trade_data,columns=[x+"_"+symbol for x in self.dict_names.values()])
+            self._clean_data(symbol)
+
+            self.data_dict[symbol] = self.trade_df
+
+            print(symbol,"trades extracted")
