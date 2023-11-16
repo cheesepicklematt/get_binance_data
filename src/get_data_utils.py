@@ -2,6 +2,7 @@ import pandas as pd
 import os
 from binance.client import Client
 import datetime as dt
+import time
 
 from get_binance_data.config import cred, save_dir
 
@@ -213,3 +214,21 @@ class tradeData:
             self.data_dict[symbol] = self.trade_df
 
             print(symbol,"trades extracted")
+
+
+def get_price_qty_round_num(symbol_list):
+    client = cred.client
+    round_num_details = []
+    for symbol in symbol_list:
+        symbol_info = client.get_symbol_info(symbol)['filters']
+
+        price_round_num = symbol_info[0]['minPrice'].rstrip('0')
+        price_round_num = len(price_round_num.split('.')[1]) if price_round_num.split('.')[1]!='0' else 0
+
+        min_trade = symbol_info[1]['minQty'].rstrip('0')
+        qty_round_num = len(min_trade.split('.')[1]) if min_trade.split('.')[1]!='0' else 0
+
+        round_num_details.append([symbol,price_round_num,qty_round_num])
+        time.sleep(0.05)
+
+    return pd.DataFrame(round_num_details,columns=["symbol","price_round_num","qty_round_num"])
