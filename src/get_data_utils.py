@@ -3,6 +3,9 @@ import os
 from binance.client import Client
 import datetime as dt
 import time
+import queue
+import threading
+
 
 from get_binance_data.config import cred, save_dir
 
@@ -26,7 +29,8 @@ class getData:
         self,
         asset_list=None,
         time_str = None,
-        kline_interval = None
+        kline_interval = None,
+        threading = True
         ):
         """asset list is a list of assets
         time_str and kline_interval are a single value
@@ -36,6 +40,7 @@ class getData:
         self.kline_interval = kline_interval
 
         # static variables
+        self.threading = threading
         self.client = cred.client
         self.kline_dict = {'Open time':0,
               'Open':1,
@@ -76,17 +81,13 @@ class getData:
 
         return ymd_hms_formats
 
-    
-    def extract_data(
-        self
-        ):
-
+    def get_klines(self,symbol_list):
         """Iterate over each asset and extract the relevant data
         create returns for open, high, low, close
         """
 
-        self.all_data_raw = []
-        for asset in self.asset_list:
+        all_data_raw = []
+        for asset in symbol_list:
             data = self.client.get_historical_klines(asset, self.kline_interval, self.time_str)
             data = pd.DataFrame(data,columns=self.kline_dict.keys())
             del data['Can be ignored'],data['Close time']
@@ -94,33 +95,66 @@ class getData:
 
             data.columns = [x+'_'+asset if x.find('time')==-1 else x for x in data.columns]
 
-            self.all_data_raw.append(data)
+            all_data_raw.append(data)
             print(asset,"data extracted")
+        
+        return all_data_raw
 
-    def merge_data(self):
-        num_assets = len(self.all_data_raw)
+    def merge_data(self,prices_list=None):
+        num_assets = len(prices_list)
 
         if num_assets == 1:
-            self.final_data = self.all_data_raw[0]
+            final_data = prices_list[0]
         elif num_assets == 2:
-            self.final_data = pd.merge(self.all_data_raw[0], self.all_data_raw[1], on='Open time', how='left')
+            final_data = pd.merge(prices_list[0], prices_list[1], on='Open time', how='left')
         elif num_assets > 2:
-            self.final_data = pd.merge(self.all_data_raw[0], self.all_data_raw[1], on='Open time', how='left')
+            final_data = pd.merge(prices_list[0], prices_list[1], on='Open time', how='left')
             for i in range(2,num_assets):
-                self.final_data = pd.merge(self.final_data, self.all_data_raw[i], on='Open time', how='left')
+                final_data = pd.merge(final_data, prices_list[i], on='Open time', how='left')
+        return final_data
 
-    def return_data(self,convert_timestamp=True,save_csv=False,return_data=True):
-        self.merge_data()
+    def return_data(self,data_queue=None,prices_list=None,format_time = False):
+        final_data = self.merge_data(prices_list=prices_list)
+        if format_time:
+            final_data['Open time formatted'] = self.convert_timestamps_to_ymd_hms(final_data['Open time']) 
 
-        if convert_timestamp:
-            self.final_data['Open time formatted'] = self.convert_timestamps_to_ymd_hms(self.final_data['Open time']) 
+        if self.threading:
+            data_queue.put(final_data)
 
-        if save_csv:
-            self.final_data.to_csv(os.path.join(save_dir,'raw_data.csv'),index=False)
+    def get_data_thread(self,symbol_list,data_queue=None):
+        prices_data = self.get_klines(symbol_list)
+        self.return_data(data_queue = data_queue, prices_list = prices_data)
 
-        if return_data:
-            return self.final_data
+    def split_list(self,lst, n):
+        """Yield successive n-sized chunks from lst."""
+        for i in range(0, len(lst), n):
+            yield lst[i:i + n]
 
+    def extract_data(
+        self
+        ):
+        # bot to be threaded
+        symbol_splits = list(self.split_list(self.asset_list,5))
+
+        result_queue = queue.Queue()
+        threads = []
+        for symbol_list in  symbol_splits:
+            thread = threading.Thread(target=self.get_data_thread, kwargs={"symbol_list":symbol_list,"data_queue":result_queue})
+            threads.append(thread)
+            thread.start()
+            time.sleep(0.2)
+
+        # Wait for all threads to finish
+        self.data_list = []
+        for thread in threads:
+            thread.join()
+            result = result_queue.get()
+            self.data_list.append(result)
+        
+        return self.return_data(prices_list=self.data_list,format_time = True)
+
+
+    
 
 
 class xHourVolume:
