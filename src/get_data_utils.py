@@ -5,6 +5,7 @@ import datetime as dt
 import time
 import queue
 import threading
+import random
 
 
 from get_binance_data.config import cred, save_dir
@@ -30,7 +31,9 @@ class getData:
         asset_list=None,
         time_str = None,
         kline_interval = None,
-        threading = True
+        threading = True,
+        num_threads = 4,
+        lag_sec = 0.2
         ):
         """asset list is a list of assets
         time_str and kline_interval are a single value
@@ -41,6 +44,10 @@ class getData:
 
         # static variables
         self.threading = threading
+        self.num_threads = num_threads
+        self.lag_sec = lag_sec
+
+
         self.client = cred.client
         self.kline_dict = {'Open time':0,
               'Open':1,
@@ -54,20 +61,6 @@ class getData:
               'Taker buy base asset volume':9,
               'Taker buy quote asset volume':10,
               'Can be ignored':11}
-    
-    def run(
-        self,        
-        asset_list=None,
-        time_str = None,
-        kline_interval = None
-        ):
-
-        self.asset_list = asset_list
-        self.time_str = time_str
-        self.kline_interval = kline_interval
-
-        self.extract_data()
-        return self.return_data()
 
     @staticmethod
     def convert_timestamps_to_ymd_hms(timestamps):
@@ -88,29 +81,34 @@ class getData:
 
         all_data_raw = []
         for asset in symbol_list:
-            data = self.client.get_historical_klines(asset, self.kline_interval, self.time_str)
-            data = pd.DataFrame(data,columns=self.kline_dict.keys())
-            del data['Can be ignored'],data['Close time']
-            data = data.apply(pd.to_numeric)
+            try:
+                data = self.client.get_historical_klines(asset, self.kline_interval, self.time_str)
+                data = pd.DataFrame(data,columns=self.kline_dict.keys())
+                del data['Can be ignored'],data['Close time']
+                data = data.apply(pd.to_numeric)
 
-            data.columns = [x+'_'+asset if x.find('time')==-1 else x for x in data.columns]
+                data.columns = [x+'_'+asset if x.find('time')==-1 else x for x in data.columns]
 
-            all_data_raw.append(data)
-            print(asset,"data extracted")
+                all_data_raw.append(data)
+                print(asset,f"data extracted    Lag sec: {self.lag_sec}")
+                time.sleep(self.lag_sec)
+
+            except Exception as e:
+                print(e)
+                print(asset,"data NOT extracted - EXCEPTION OCCURED")
         
         return all_data_raw
 
     def merge_data(self,prices_list=None):
         num_assets = len(prices_list)
 
-        if num_assets == 1:
-            final_data = prices_list[0]
-        elif num_assets == 2:
-            final_data = pd.merge(prices_list[0], prices_list[1], on='Open time', how='left')
-        elif num_assets > 2:
-            final_data = pd.merge(prices_list[0], prices_list[1], on='Open time', how='left')
-            for i in range(2,num_assets):
-                final_data = pd.merge(final_data, prices_list[i], on='Open time', how='left')
+        full_open_time = [x['Open time'] for x in prices_list]
+        full_open_time = list(set([y for x in full_open_time for y in x]))
+        
+        final_data = pd.DataFrame(full_open_time,columns=['Open time'])
+        final_data = final_data.sort_values(by="Open time")
+        for i in range(num_assets):
+            final_data = pd.merge(final_data, prices_list[i], on='Open time', how='left')
         return final_data
 
     def return_data(self,data_queue=None,prices_list=None,format_time = False):
@@ -134,7 +132,8 @@ class getData:
         self
         ):
         # bot to be threaded
-        symbol_splits = list(self.split_list(self.asset_list,5))
+        random.shuffle(self.asset_list)
+        symbol_splits = list(self.split_list(self.asset_list,self.num_threads))
 
         result_queue = queue.Queue()
         threads = []
@@ -145,13 +144,19 @@ class getData:
             time.sleep(0.2)
 
         # Wait for all threads to finish
-        self.data_list = []
         for thread in threads:
             thread.join()
-            result = result_queue.get()
-            self.data_list.append(result)
         
-        return self.return_data(prices_list=self.data_list,format_time = True)
+        self.data_list = []
+        while not result_queue.empty():
+            result = result_queue.get()
+            if not result.empty:
+                self.data_list.append(result)
+        
+        export_data = self.merge_data(prices_list=self.data_list)
+        export_data['Open time formatted'] = self.convert_timestamps_to_ymd_hms(export_data['Open time']) 
+
+        return export_data
 
 
     
@@ -169,12 +174,13 @@ class xHourVolume:
         self.symbol_list = [x['symbol'] for x in info['symbols'] if x['symbol'][-3:]=='BTC']
 
     def run(self):
-        gd = getData()
-        data = gd.run(
+        gd = getData(
             asset_list=self.symbol_list,
             time_str = str(self.hours)+" hours ago UTC",
-            kline_interval = Client.KLINE_INTERVAL_30MINUTE
+            kline_interval = Client.KLINE_INTERVAL_30MINUTE,
+            num_threads = 8
         )
+        data = gd.extract_data()
 
         vol_list = []
         for symbol in self.symbol_list:
