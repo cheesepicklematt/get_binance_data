@@ -33,19 +33,24 @@ class getData:
         kline_interval = None,
         threading = True,
         num_threads = 4,
-        lag_sec = 0.2
+        lag_sec = 0.2,
+        verbose = True
         ):
         """asset list is a list of assets
         time_str and kline_interval are a single value
         """
         self.asset_list = asset_list
-        self.time_str = time_str
+        if type(time_str)==str:
+            self.time_str = [time_str]
+        else:
+            self.time_str = time_str
         self.kline_interval = kline_interval
 
         # static variables
         self.threading = threading
         self.num_threads = num_threads
         self.lag_sec = lag_sec
+        self.verbose = verbose
 
 
         self.client = cred.client
@@ -82,7 +87,10 @@ class getData:
         all_data_raw = []
         for asset in symbol_list:
             try:
-                data = self.client.get_historical_klines(asset, self.kline_interval, self.time_str)
+                if len(self.time_str)==1:
+                    data = self.client.get_historical_klines(asset, self.kline_interval, self.time_str[0])
+                else:
+                    data = self.client.get_historical_klines(asset, self.kline_interval, self.time_str[0],self.time_str[1])
                 data = pd.DataFrame(data,columns=self.kline_dict.keys())
                 del data['Can be ignored'],data['Close time']
                 data = data.apply(pd.to_numeric)
@@ -90,7 +98,8 @@ class getData:
                 data.columns = [x+'_'+asset if x.find('time')==-1 else x for x in data.columns]
 
                 all_data_raw.append(data)
-                print(asset,f"data extracted    Lag sec: {self.lag_sec}")
+                if self.verbose:
+                    print(asset,f"data extracted    Lag sec: {self.lag_sec}")
                 time.sleep(self.lag_sec)
 
             except Exception as e:
