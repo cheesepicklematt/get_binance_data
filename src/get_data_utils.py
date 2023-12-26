@@ -129,7 +129,7 @@ class getData:
             )
         return final_data
 
-    def return_data(self, data_queue=None, prices_list=None, format_time=True):
+    def return_data(self, data_queue=None, prices_list=None, format_time=False):
         final_data = self.merge_data(prices_list=prices_list)
         if format_time:
             final_data["Open time formatted"] = self.convert_timestamps_to_ymd_hms(
