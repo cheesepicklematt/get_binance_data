@@ -112,6 +112,7 @@ class getData:
             except Exception as e:
                 print(e)
                 print(asset, "data NOT extracted - EXCEPTION OCCURED")
+                time.sleep(120)
 
         return all_data_raw
 
