@@ -184,17 +184,14 @@ class getData:
 
 
 class xHourVolume:
-    def __init__(self, hours=None, top_x=None, save_path=None):
+    def __init__(self, hours=None, top_x=None, save_path=None,symbol_list=None):
         self.client = cred.client
 
         self.hours = hours
         self.top_x = top_x
         self.save_path = save_path
-
-        info = self.client.get_exchange_info()
-        self.symbol_list = [
-            x["symbol"] for x in info["symbols"] if x["symbol"][-3:] == "BTC"
-        ]
+        
+        self.symbol_list = symbol_list
 
     def run(self):
         gd = getData(
