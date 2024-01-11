@@ -205,11 +205,14 @@ class xHourVolume:
 
         vol_list = []
         for symbol in self.symbol_list:
-            coin_col = "Taker buy base asset volume_" + symbol
-            btc_col = "Taker buy quote asset volume_" + symbol
-            coin_volume = data[coin_col].sum()
-            btc_volume = data[btc_col].sum()
-            vol_list.append([symbol, coin_volume, btc_volume])
+            try:
+                coin_col = "Taker buy base asset volume_" + symbol
+                btc_col = "Taker buy quote asset volume_" + symbol
+                coin_volume = data[coin_col].sum()
+                btc_volume = data[btc_col].sum()
+                vol_list.append([symbol, coin_volume, btc_volume])
+            except:
+                pass
 
         excl_list = ["WBTCBTC", "XMRBTC"]
 
