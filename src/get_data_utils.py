@@ -184,13 +184,13 @@ class getData:
 
 
 class xHourVolume:
-    def __init__(self, hours=None, top_x=None, save_path=None,symbol_list=None):
+    def __init__(self, hours=None, top_x=None, save_path=None, symbol_list=None):
         self.client = cred.client
 
         self.hours = hours
         self.top_x = top_x
         self.save_path = save_path
-        
+
         self.symbol_list = symbol_list
 
     def run(self):
@@ -211,8 +211,9 @@ class xHourVolume:
                 coin_volume = data[coin_col].sum()
                 btc_volume = data[btc_col].sum()
                 vol_list.append([symbol, coin_volume, btc_volume])
-            except:
-                pass
+            except Exception as e:
+                print(e)
+                print(f"{symbol} err volume data")
 
         excl_list = ["WBTCBTC", "XMRBTC"]
 
