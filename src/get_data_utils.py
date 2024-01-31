@@ -199,7 +199,7 @@ class xHourVolume:
             time_str=str(self.hours) + " hours ago UTC",
             kline_interval=Client.KLINE_INTERVAL_30MINUTE,
             num_threads=8,
-            lag_sec=5,
+            lag_sec=25,
         )
         data = gd.extract_data()
 
